@@ -67,6 +67,8 @@
             <argument>%api_platform.oauth.tokenUrl%</argument>
             <argument>%api_platform.oauth.authorizationUrl%</argument>
             <argument>%api_platform.oauth.scopes%</argument>
+            <argument>%api_platform.oauth.redirectUrl%</argument>
+            <argument type="service" id="assets.packages" />
         </service>
 
     </services>

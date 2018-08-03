@@ -20,6 +20,7 @@ use ApiPlatform\Core\Exception\RuntimeException;
 use ApiPlatform\Core\Metadata\Resource\Factory\ResourceMetadataFactoryInterface;
 use ApiPlatform\Core\Metadata\Resource\Factory\ResourceNameCollectionFactoryInterface;
 use ApiPlatform\Core\Util\RequestAttributesExtractor;
+use Symfony\Component\Asset\Packages;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -37,10 +38,11 @@ final class SwaggerUiAction
     private $normalizer;
     private $twig;
     private $urlGenerator;
+    private $assetPackages;
     private $title;
     private $description;
     private $version;
-    private $formats = [];
+    private $formats;
     private $oauthEnabled;
     private $oauthClientId;
     private $oauthClientSecret;
@@ -48,19 +50,21 @@ final class SwaggerUiAction
     private $oauthFlow;
     private $oauthTokenUrl;
     private $oauthAuthorizationUrl;
+    private $oauthRedirectUrl;
     private $oauthScopes;
     private $formatsProvider;
 
     /**
      * @throws InvalidArgumentException
      */
-    public function __construct(ResourceNameCollectionFactoryInterface $resourceNameCollectionFactory, ResourceMetadataFactoryInterface $resourceMetadataFactory, NormalizerInterface $normalizer, \Twig_Environment $twig, UrlGeneratorInterface $urlGenerator, string $title = '', string $description = '', string $version = '', /* FormatsProviderInterface */ $formatsProvider = [], $oauthEnabled = false, $oauthClientId = '', $oauthClientSecret = '', $oauthType = '', $oauthFlow = '', $oauthTokenUrl = '', $oauthAuthorizationUrl = '', $oauthScopes = [])
+    public function __construct(ResourceNameCollectionFactoryInterface $resourceNameCollectionFactory, ResourceMetadataFactoryInterface $resourceMetadataFactory, NormalizerInterface $normalizer, \Twig_Environment $twig, UrlGeneratorInterface $urlGenerator, string $title = '', string $description = '', string $version = '', /* FormatsProviderInterface */ $formatsProvider = [], $oauthEnabled = false, $oauthClientId = '', $oauthClientSecret = '', $oauthType = '', $oauthFlow = '', $oauthTokenUrl = '', $oauthAuthorizationUrl = '', $oauthScopes = [], $oauthRedirectUrl = NULL, Packages $assetPackages)
     {
         $this->resourceNameCollectionFactory = $resourceNameCollectionFactory;
         $this->resourceMetadataFactory = $resourceMetadataFactory;
         $this->normalizer = $normalizer;
         $this->twig = $twig;
         $this->urlGenerator = $urlGenerator;
+        $this->assetPackages = $assetPackages;
         $this->title = $title;
         $this->description = $description;
         $this->version = $version;
@@ -71,6 +75,7 @@ final class SwaggerUiAction
         $this->oauthFlow = $oauthFlow;
         $this->oauthTokenUrl = $oauthTokenUrl;
         $this->oauthAuthorizationUrl = $oauthAuthorizationUrl;
+        $this->oauthRedirectUrl = $oauthRedirectUrl;
         $this->oauthScopes = $oauthScopes;
 
         if (\is_array($formatsProvider)) {
@@ -117,6 +122,13 @@ final class SwaggerUiAction
             'spec' => $this->normalizer->normalize($documentation, 'json', ['base_url' => $request->getBaseUrl()]),
         ];
 
+        if (!$this->oauthRedirectUrl) {
+            $this->oauthRedirectUrl = $request->getScheme() . '://' .
+                $request->getHttpHost() .
+                $request->getBasePath() .
+                $this->assetPackages->getUrl('bundles/apiplatform/swagger-ui/oauth2-redirect.html');
+        }
+
         $swaggerData['oauth'] = [
             'enabled' => $this->oauthEnabled,
             'clientId' => $this->oauthClientId,
@@ -125,6 +137,7 @@ final class SwaggerUiAction
             'flow' => $this->oauthFlow,
             'tokenUrl' => $this->oauthTokenUrl,
             'authorizationUrl' => $this->oauthAuthorizationUrl,
+            'redirectUrl' => $this->oauthRedirectUrl,
             'scopes' => $this->oauthScopes,
         ];
 
